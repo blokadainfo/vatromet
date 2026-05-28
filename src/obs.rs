@@ -33,7 +33,11 @@ pub async fn handle_tbar(
         } else {
             false
         };
-        if position == 0 || position == 255 {
+        let mut perform_cut = false;
+        if release {
+            if state.active {
+                perform_cut = true;
+            }
             state.active = false;
         } else {
             state.active = true;
@@ -45,6 +49,9 @@ pub async fn handle_tbar(
             .transitions()
             .set_tbar_position(position_float, Some(release))
             .await?;
+        if perform_cut {
+            client.transitions().trigger().await?;
+        }
     }
     Ok(())
 }
