@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{env, process::exit, time::Duration};
 
 use obws::Client;
 use serialport::SerialPort;
@@ -18,7 +18,18 @@ mod serial;
 
 #[tokio::main]
 async fn main() {
-    let config = read_config().expect("Reading config");
+    let config_path = match env::var("VATROMET_CONFIG") {
+        Ok(path) => path,
+        Err(_) => String::from("vatromet.toml"),
+    };
+
+    let config = match read_config(config_path) {
+        Ok(c) => c,
+        Err(e) => {
+            eprintln!("Couldn't load configuration file - {e}");
+            exit(-1);
+        }
+    };
 
     let mut obs_client_option: Option<Client> = None;
     let mut serial_port_option: Option<Box<dyn SerialPort>> = None;

@@ -11,8 +11,8 @@ pub struct Config {
     pub serial_path: Option<String>,
 }
 
-pub fn read_config() -> io::Result<Config> {
-    let mut file = File::open("vatromet.toml")?;
+pub fn read_config(config_path: String) -> io::Result<Config> {
+    let mut file = File::open(config_path)?;
     let mut file_contents = String::new();
     file.read_to_string(&mut file_contents)?;
 
