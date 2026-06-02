@@ -72,6 +72,9 @@ async fn main() {
 
         if let Err(e) = handle_tbar(&mut tbar_state, &packet, &obs_client).await {
             eprintln!("Setting T-bar failed - {e}");
+            eprintln!("Resetting OBS connection...");
+            obs_client_option = None;
+            continue;
         }
     }
 }
