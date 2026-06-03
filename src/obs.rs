@@ -33,16 +33,14 @@ pub async fn handle_tbar(
         } else {
             false
         };
-        let mut perform_cut = false;
         if release {
-            if state.active {
-                perform_cut = true;
-            }
             state.active = false;
         } else {
             state.active = true;
         }
+        let mut perform_cut = false;
         if position == 255 {
+            perform_cut = true;
             state.reverse = !state.reverse;
         }
         client
