@@ -6,8 +6,6 @@ use std::{
 
 #[derive(Deserialize)]
 pub struct Config {
-    pub ws_port: Option<u16>,
-    pub ws_password: String,
     pub serial_path: Option<String>,
 }
 

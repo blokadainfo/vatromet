@@ -1,23 +1,19 @@
-use std::{env, process::exit, time::Duration};
+use std::{env, eprintln, process::exit, time::Duration};
 
-use obws::Client;
 use serialport::SerialPort;
 use tokio::time::sleep;
 
 use crate::{
-    config::read_config,
-    obs::{TBarState, connect, handle_tbar},
-    protocol::OU_Packet,
-    serial::{open_port, read_frame},
+    config::read_config, connection::{Connection}, protocol::OU_Packet, serial::{open_port, read_frame},
 };
 
 mod config;
-mod obs;
+mod connection;
 mod protocol;
 mod serial;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> anyhow::Result<()> {
     let config_path = match env::var("VATROMET_CONFIG") {
         Ok(path) => path,
         Err(_) => String::from("vatromet.toml"),
@@ -31,27 +27,14 @@ async fn main() {
         }
     };
 
-    let mut obs_client_option: Option<Client> = None;
+    let mut connection = Connection::new(&config)?;
     let mut serial_port_option: Option<Box<dyn SerialPort>> = None;
 
-    let mut tbar_state = TBarState::default();
-
     loop {
-        if obs_client_option.is_none() {
-            println!("Connecting to OBS...");
-            obs_client_option = match connect(&config).await {
-                Ok(c) => Some(c),
-                Err(e) => {
-                    eprintln!("Error connecting to OBS - {e}");
-                    sleep(Duration::from_secs(1)).await;
-                    None
-                }
-            };
-        }
-
-        let Some(obs_client) = &mut obs_client_option else {
+        if connection.open(&config).await.is_err() {
+            sleep(Duration::from_secs(1)).await;
             continue;
-        };
+        }
 
         if serial_port_option.is_none() {
             println!("Opening serial port...");
@@ -81,11 +64,10 @@ async fn main() {
 
         let packet = OU_Packet::from_bytes(&frame);
 
-        if let Err(e) = handle_tbar(&mut tbar_state, &packet, &obs_client).await {
-            eprintln!("Setting T-bar failed - {e}");
-            eprintln!("Resetting OBS connection...");
-            obs_client_option = None;
-            continue;
+        if let Err(e) = connection.handle(&packet).await {
+            eprintln!("Error while handling tbar - {e}");
         }
+
+
     }
 }

@@ -1,5 +1,5 @@
 # vatromet
-Interoperability software allowing FOR-A HANABI video switcher control boards to be used to control OBS Studio.
+Interoperability software allowing FOR-A HANABI video switcher control boards to be used as MIDI controllers, making them usable in software such as vMix or OBS.
 
 _Vatromet = Fireworks in Serbian, the same way Hanabi = Fireworks in Japanese._ 
 ## Support

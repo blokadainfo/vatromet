@@ -1,3 +1,1 @@
-ws_password = "password" # OBS WebSocket server password
-ws_port = 4455 # OBS WebSocket server port, optional (4455 by default)
 serial_path = "/dev/ttyUSB0" # Path to serial port used for communication with the OU, optional (/dev/ttyUSB0 by default)
