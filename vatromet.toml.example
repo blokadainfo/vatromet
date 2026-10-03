@@ -1,1 +1,2 @@
 serial_path = "/dev/ttyUSB0" # Path to serial port used for communication with the OU, optional (/dev/ttyUSB0 by default)
+midi_name = "VATROMET" # Name of the MIDI output port to match when searching for ports 

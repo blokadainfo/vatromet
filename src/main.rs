@@ -1,4 +1,4 @@
-use std::{env, eprintln, process::exit, time::Duration};
+use std::{env, eprintln, panic, time::Duration};
 
 use serialport::SerialPort;
 use tokio::time::sleep;
@@ -22,8 +22,7 @@ async fn main() -> anyhow::Result<()> {
     let config = match read_config(config_path) {
         Ok(c) => c,
         Err(e) => {
-            eprintln!("Couldn't load configuration file - {e}");
-            exit(-1);
+            panic!("Couldn't load configuration file. {e}");
         }
     };
 
@@ -31,7 +30,8 @@ async fn main() -> anyhow::Result<()> {
     let mut serial_port_option: Option<Box<dyn SerialPort>> = None;
 
     loop {
-        if connection.open(&config).await.is_err() {
+        if let Err(e) = connection.open().await {
+            eprintln!("Couldn't open connection. {e}");
             sleep(Duration::from_secs(1)).await;
             continue;
         }
@@ -41,7 +41,7 @@ async fn main() -> anyhow::Result<()> {
             serial_port_option = match open_port(&config) {
                 Ok(p) => Some(p),
                 Err(e) => {
-                    eprintln!("Error opening port - {e}");
+                    eprintln!("Couldn't open port. {e}");
                     sleep(Duration::from_secs(1)).await;
                     None
                 }
@@ -55,7 +55,7 @@ async fn main() -> anyhow::Result<()> {
         let frame = match read_frame(serial_port).await {
             Ok(f) => f,
             Err(e) => {
-                eprintln!("Couldn't read frame - {e}");
+                eprintln!("Couldn't read frame. {e}");
                 eprintln!("Resetting serial port...");
                 serial_port_option = None;
                 continue;
@@ -65,7 +65,7 @@ async fn main() -> anyhow::Result<()> {
         let packet = OU_Packet::from_bytes(&frame);
 
         if let Err(e) = connection.handle(&packet).await {
-            eprintln!("Error while handling tbar - {e}");
+            eprintln!("Couldn't handle packet. {e}");
         }
 
 

@@ -1,4 +1,3 @@
-use std::{eprintln, io::{self, Write, stdin, stdout}, num::Wrapping, println};
 
 use midir::{MidiOutput, MidiOutputConnection};
 
@@ -7,6 +6,7 @@ use anyhow::anyhow;
 
 pub struct Connection {
     midi_connection: Option<MidiOutputConnection>,
+    midi_name: String,
     states: States
 }
 
@@ -33,43 +33,32 @@ impl Connection {
     pub fn new(config: &Config) -> anyhow::Result<Connection> {
         Ok(Connection {
             midi_connection: None,
+            midi_name: config.midi_name.clone(),
             states: States::default()
         })
     }
     
-    pub async fn open(&mut self, config: &Config) -> Result<(), ()> {
+    pub async fn open(&mut self) -> anyhow::Result<()> {
         if self.midi_connection.is_none() {
-            let midi_out = MidiOutput::new("VATROMETOutput").expect("MidiOutput");
-
-            // Get an output port (read from console if multiple are available)
+            let midi_out = MidiOutput::new("VATROMETOutput")?;
             let out_ports = midi_out.ports();
-            let out_port= match out_ports.len() {
-                0 => return Err(()),
-                1 => {
-                    println!(
-                        "Choosing the only available output port: {}",
-                        midi_out.port_name(&out_ports[0]).unwrap()
-                    );
-                    &out_ports[0]
+            let mut matched_port= None;
+            for port in &out_ports {
+                let Ok(port_name) = midi_out.port_name(port) else {
+                    continue;
+                };
+                if port_name.contains(self.midi_name.as_str()) {
+                    matched_port = Some(port);
+                    break;
                 }
-                _ => {
-                    println!("\nAvailable output ports:");
-                    for (i, p) in out_ports.iter().enumerate() {
-                        println!("{}: {}", i, midi_out.port_name(p).unwrap());
-                    }
-                    print!("Please select output port: ");
-                    stdout().flush().unwrap();
-                    let mut input = String::new();
-                    stdin().read_line(&mut input).unwrap();
-                    out_ports
-                        .get(input.trim().parse::<usize>().unwrap())
-                        .ok_or("invalid output port selected").unwrap()
-                }
+            }
+            let Some(out_port) = matched_port else {
+                return Err(anyhow!("No port with matched name '{}' found", self.midi_name))
             };
 
-            println!("\nOpening connection");
-            let conn_out = midi_out.connect(out_port, "midir-test").unwrap();
-            println!("Connection open. Listen!");
+            let Ok(conn_out) = midi_out.connect(out_port, "VATROMET_CONN") else {
+                return Err(anyhow!("Couldn't connect to MIDI output port"));
+            };
             self.midi_connection = Some(conn_out);
         }
         return Ok(());
@@ -115,7 +104,6 @@ impl Connection {
                     continue;
                 }
                 
-                println!("knob {i} - {knob}");
                 let value = {
                     if direction == KnobDirection::Left {
                         64 - 2
@@ -125,7 +113,6 @@ impl Connection {
                 };
                
                 midi_connection.send(&[0xB0, 0x10 + i as u8, value])?;
-                println!("Direction {:?}", direction);
             }
         }
 

@@ -7,6 +7,7 @@ use std::{
 #[derive(Deserialize)]
 pub struct Config {
     pub serial_path: Option<String>,
+    pub midi_name: String
 }
 
 pub fn read_config(config_path: String) -> io::Result<Config> {
